@@ -13,6 +13,7 @@ Leave a field blank rather than writing vague filler.
 ## 1. What it is
 
 **One-line description:**
+{{ONE_LINE_DESCRIPTION}}
 <!-- Who does what, without what pain? e.g. "A tool for freelancers to send and track invoices without touching a spreadsheet." -->
 
 

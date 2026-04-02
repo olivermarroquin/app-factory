@@ -35,7 +35,7 @@ See `workflows/fill-docs-from-intake.md` for the full detail on this step.
 ## 4. Bootstrap the project (first build session)
 
 - [ ] Paste the init prompt (printed at end of `new-app` output) into Claude Code
-- [ ] Fill in `<ONE_LINE_DESCRIPTION>` in the prompt before pasting
+- [ ] If `--describe` was not used: fill in `<ONE_LINE_DESCRIPTION>` in the prompt before pasting
 - [ ] Let Claude scaffold the project and get to "hello world"
 - [ ] Review and commit the scaffold
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-create_project.py — App Factory project generator (v3)
+create_project.py — App Factory project generator (v4)
 
 Usage:
-    python scripts/create_project.py <slug> [--preset <name>] [--git] [--open]
+    python scripts/create_project.py <slug> [--preset <name>] [--describe "..."] [--git] [--open]
     python scripts/create_project.py --list
 
 Examples:
     python scripts/create_project.py my-startup
     python scripts/create_project.py my-startup --preset next-supabase
-    python scripts/create_project.py my-startup --preset next-supabase --git
     python scripts/create_project.py my-startup --preset next-supabase --git --open
+    python scripts/create_project.py my-startup --preset next-supabase --describe "A tool for recruiters to shortlist candidates without spreadsheets" --git --open
     python scripts/create_project.py --list
 """
 
@@ -105,21 +105,26 @@ def slug_to_title(slug):
     return " ".join(word.capitalize() for word in slug.replace("_", "-").split("-"))
 
 
-def build_replacements(slug, preset_data):
+def build_replacements(slug, preset_data, description=None):
     """
     Merge base replacements with preset data.
     Base identity values (APP_NAME, APP_SLUG, DATE, YEAR) always win.
+    Optional description fills ONE_LINE_DESCRIPTION if provided.
     """
     today = date.today()
     title = slug_to_title(slug)
 
     base = {
-        "APP_SLUG":  slug,
-        "APP_NAME":  title,
-        "APP_TITLE": title,
-        "DATE":      today.isoformat(),
-        "YEAR":      str(today.year),
+        "APP_SLUG":      slug,
+        "APP_NAME":      title,
+        "APP_TITLE":     title,
+        "DATE":          today.isoformat(),
+        "YEAR":          str(today.year),
+        "CURRENT_STAGE": "MVP build",
     }
+
+    if description:
+        base["ONE_LINE_DESCRIPTION"] = description
 
     return {**preset_data, **base}
 
@@ -252,7 +257,7 @@ def abort(message):
 
 # ─── Generator ────────────────────────────────────────────────────────────────
 
-def generate(slug, preset_name, use_git, use_open):
+def generate(slug, preset_name, use_git, use_open, description=None):
     validate_slug(slug)
     validate_templates()
 
@@ -260,11 +265,13 @@ def generate(slug, preset_name, use_git, use_open):
     validate_target(project_dir)
 
     preset_data  = load_preset(preset_name) if preset_name else {}
-    replacements = build_replacements(slug, preset_data)
+    replacements = build_replacements(slug, preset_data, description)
 
     print()
     print(f"  slug    {slug}")
     print(f"  preset  {preset_name or '(none)'}")
+    if description:
+        print(f"  desc    {description}")
     print(f"  git     {'yes' if use_git else 'no'}")
     print(f"  open    {'yes' if use_open else 'no'}")
     print(f"  output  {project_dir}")
@@ -378,8 +385,8 @@ def parse_args():
             "examples:\n"
             "  python scripts/create_project.py my-startup\n"
             "  python scripts/create_project.py my-startup --preset next-supabase\n"
-            "  python scripts/create_project.py my-startup --preset next-supabase --git\n"
             "  python scripts/create_project.py my-startup --preset next-supabase --git --open\n"
+            '  python scripts/create_project.py my-startup --preset next-supabase --describe "A tool for X" --git --open\n'
             "  python scripts/create_project.py --list"
         ),
     )
@@ -402,6 +409,11 @@ def parse_args():
         "--open",
         action="store_true",
         help="open the generated project in VS Code after generation",
+    )
+    parser.add_argument(
+        "--describe",
+        metavar="TEXT",
+        help="one-line description of the app (fills ONE_LINE_DESCRIPTION in all templates)",
     )
     parser.add_argument(
         "--list",
@@ -431,6 +443,7 @@ def main():
         preset_name=args.preset,
         use_git=args.git,
         use_open=args.open,
+        description=args.describe,
     )
 
 
