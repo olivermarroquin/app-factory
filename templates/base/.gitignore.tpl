@@ -3,7 +3,7 @@ node_modules/
 .pnp
 .pnp.js
 
-# Environment
+# Environment — never commit secrets
 .env
 .env.local
 .env.*.local
@@ -13,13 +13,14 @@ node_modules/
 out/
 dist/
 build/
+*.tsbuildinfo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Editor
-.vscode/
+# Editor — commit .vscode/settings.json if the team shares editor config
+.vscode/extensions.json
 .idea/
 *.swp
 *.swo
@@ -27,9 +28,11 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
 
 # Testing
 coverage/
+.nyc_output/
 
 # Misc
 .tmp/

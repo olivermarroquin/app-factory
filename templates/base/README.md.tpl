@@ -2,51 +2,43 @@
 
 {{ONE_LINE_DESCRIPTION}}
 
+**Live:** {{APP_URL}} &nbsp;|&nbsp; **Stage:** {{CURRENT_STAGE}}
+
+---
+
 ## What it does
 
-{{2_3_SENTENCE_DESCRIPTION}}
+{{SHORT_DESCRIPTION}}
 
 ## Stack
 
-- **Frontend:** {{FRONTEND}}
-- **Backend:** {{BACKEND}}
-- **Database:** {{DATABASE}}
-- **Auth:** {{AUTH}}
-- **Hosting:** {{HOSTING}}
+| Layer | Choice |
+|-------|--------|
+| Frontend | {{FRONTEND}} |
+| Backend | {{BACKEND}} |
+| Database | {{DATABASE}} |
+| Auth | {{AUTH}} |
+| Hosting | {{HOSTING}} |
 
-## Getting started
-
-### Prerequisites
-
-- {{PREREQ_1}}
-- {{PREREQ_2}}
-
-### Setup
+## Local setup
 
 ```bash
-# Clone
-git clone {{REPO_URL}}
-cd {{APP_NAME}}
-
-# Install dependencies
+# Install
 {{INSTALL_CMD}}
 
-# Set up environment
+# Environment
 cp .env.example .env
-# Fill in values in .env
+# Fill in values — see docs/architecture.md for notes on each var
 
-# Run locally
+# Run
 {{DEV_CMD}}
 ```
 
+**Requires:** Node {{NODE_VERSION}}+, {{OTHER_PREREQS}}
+
 ## Docs
 
-See `docs/` for:
-- [Product brief](docs/product-brief.md)
-- [MVP scope](docs/mvp-scope.md)
-- [Architecture](docs/architecture.md)
-- [Roadmap](docs/roadmap.md)
-
-## Status
-
-**Current phase:** {{PHASE}}
+- [Product brief](docs/product-brief.md) — problem, user, core workflow
+- [MVP scope](docs/mvp-scope.md) — what's in and out of v1
+- [Architecture](docs/architecture.md) — stack, structure, key decisions
+- [Roadmap](docs/roadmap.md) — current phase and what's next

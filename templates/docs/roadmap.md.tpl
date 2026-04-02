@@ -1,35 +1,53 @@
 # Roadmap — {{APP_NAME}}
 
+## Current focus
+
+<!-- Update this every session. One sentence. This is the first thing Claude reads. -->
+
+> **Right now:** {{CURRENT_FOCUS}}
+
+---
+
 ## Phase 1 — MVP
 
-**Goal:** {{MVP_GOAL}}
+**Goal:** Complete the primary user flow end-to-end
 **Target:** {{MVP_DATE}}
+**Demo milestone:** {{DEMO_MILESTONE}} <!-- e.g. "first external user completes onboarding" -->
 
 - [ ] {{TASK_1}}
 - [ ] {{TASK_2}}
 - [ ] {{TASK_3}}
-- [ ] Ship to first real users
+- [ ] {{TASK_4}}
+- [ ] Deploy to production URL
+- [ ] One real user completes the full flow
 
-## Phase 2 — Post-MVP
+**Phase 1 is done when:** {{MVP_DONE_CRITERIA}}
 
-**Goal:** {{PHASE2_GOAL}}
+---
+
+## Phase 2 — Retention
+
+**Goal:** Make the core workflow good enough that users come back
 **Target:** {{PHASE2_DATE}}
 
-- [ ] {{TASK_1}}
-- [ ] {{TASK_2}}
-- [ ] {{TASK_3}}
+<!-- Don't fill this in until Phase 1 ships. Plans change after real user feedback. -->
 
-## Phase 3 — Growth / scale
+- [ ] Fix the top friction points from Phase 1 user feedback
+- [ ] {{PHASE2_TASK_1}}
+- [ ] {{PHASE2_TASK_2}}
+
+---
+
+## Phase 3 — Growth
 
 **Goal:** {{PHASE3_GOAL}}
-**Target:** TBD
+**Target:** TBD — plan after Phase 2 is validated
 
-- [ ] {{TASK_1}}
-- [ ] {{TASK_2}}
+---
 
-## Backlog (unscheduled ideas)
+## Backlog
 
-These are real ideas but have no phase yet. Add to a phase when prioritized.
+<!-- Ideas that have no phase yet. Move to a phase when prioritized. -->
 
 - {{IDEA_1}}
 - {{IDEA_2}}
@@ -37,5 +55,4 @@ These are real ideas but have no phase yet. Add to a phase when prioritized.
 
 ---
 
-> Update this doc at the end of every sprint or build session.
-> Keep phase 1 ruthlessly small.
+> Keep Phase 1 ruthlessly small. Update "Current focus" every session.

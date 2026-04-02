@@ -2,40 +2,52 @@
 
 ## Problem
 
-<!-- What problem does this app solve? Who has this problem? -->
+<!-- Be specific. Bad: "it's hard to manage X". Good: "founders spend 3 hours per week manually doing X because existing tools require Y." -->
 
 {{PROBLEM_STATEMENT}}
 
+## Who has this problem
+
+<!-- One primary user. The more specific, the better. -->
+
+- **Who:** {{USER_PERSONA}}
+- **Context:** {{WHEN_AND_WHERE_THEY_HIT_THIS}}
+- **What they do today:** {{CURRENT_WORKAROUND}}
+- **What that costs them:** {{COST_TIME_MONEY_FRUSTRATION}}
+
 ## Solution
 
-<!-- How does this app solve it? What is the core value prop? -->
+<!-- One paragraph. What does this app do and why is it better than the workaround? -->
 
 {{SOLUTION_STATEMENT}}
 
-## Target user
+## Core workflow
 
-<!-- Who is the primary user? Be specific — one persona is better than many. -->
+<!-- The primary user's path through the app. This is what drives MVP scope.
+     Format: numbered steps, one action each. -->
 
-- **Who:** {{USER_PERSONA}}
-- **Context:** {{USAGE_CONTEXT}}
-- **Pain today:** {{CURRENT_PAIN}}
+1. {{STEP_1}}
+2. {{STEP_2}}
+3. {{STEP_3}}
+4. {{STEP_4}}
+
+## Why now
+
+<!-- Why is this worth building now? Market timing, personal context, enabling technology, etc. -->
+
+{{WHY_NOW}}
 
 ## Success metrics
 
-<!-- How will you know if this app is working? -->
+<!-- Measurable. Each should be checkable within 4–8 weeks of launch. -->
 
-- {{METRIC_1}}
-- {{METRIC_2}}
+- **Primary:** {{PRIMARY_METRIC}} (e.g. 10 users complete the core workflow in their first session)
+- **Secondary:** {{SECONDARY_METRIC}}
 
-## Out of scope
+## Out of scope (permanently or for now)
 
-<!-- What will this app explicitly NOT do? -->
+<!-- Protect the focus. Add items here when you feel tempted to expand scope. -->
 
 - {{OUT_OF_SCOPE_1}}
 - {{OUT_OF_SCOPE_2}}
-
-## Inspiration / references
-
-<!-- Other apps, products, or experiences that inform this one -->
-
-- {{REFERENCE_1}}
+- {{OUT_OF_SCOPE_3}}
