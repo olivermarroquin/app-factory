@@ -1,3 +1,27 @@
+---
+# Stack replacements — these fill {{PLACEHOLDERS}} in generated templates
+STACK_SUMMARY       = React Native + Expo (managed) + EAS
+FRONTEND            = React Native (Expo managed workflow)
+BACKEND             = Supabase (recommended) or Firebase
+DATABASE            = Supabase (Postgres)
+AUTH                = Supabase Auth
+EMAIL_SERVICE       = n/a (mobile app)
+HOSTING             = EAS Build + App Store / Play Store
+CICD_NOTES          = EAS Build for iOS and Android; eas build --platform all
+DB_CLIENT           = supabase
+AUTH_PROVIDER       = Supabase Auth
+SESSION_MODEL       = Supabase session in AsyncStorage via Expo SecureStore
+PROTECTED_ROUTE_PATTERN = app/(app)/
+REDIRECT_TARGET     = /login
+NODE_VERSION        = 18
+INSTALL_CMD         = npm install
+DEV_CMD             = npx expo start
+BUILD_CMD           = eas build
+TEST_CMD            = npm test
+OTHER_PREREQS       = Expo CLI, EAS CLI, Xcode (iOS) or Android Studio (Android)
+APP_DOMAIN          = yourdomain.com
+---
+
 # Stack Preset: React Native + Expo
 
 ## Summary

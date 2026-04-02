@@ -1,30 +1,22 @@
 #!/usr/bin/env python3
 """
-create_project.py — App Factory project generator (v1)
-
-Bootstraps a new app repo from the factory templates.
+create_project.py — App Factory project generator (v3)
 
 Usage:
-    python scripts/create_project.py <slug>
+    python scripts/create_project.py <slug> [--preset <name>] [--git] [--open]
+    python scripts/create_project.py --list
 
-Example:
-    python scripts/create_project.py my-new-startup
-
-Creates:
-    ~/projects/my-new-startup/
-        README.md
-        CLAUDE.md
-        .env.example
-        .gitignore
-        docs/
-            product-brief.md
-            mvp-scope.md
-            architecture.md
-            roadmap.md
-        .tmp/
+Examples:
+    python scripts/create_project.py my-startup
+    python scripts/create_project.py my-startup --preset next-supabase
+    python scripts/create_project.py my-startup --preset next-supabase --git
+    python scripts/create_project.py my-startup --preset next-supabase --git --open
+    python scripts/create_project.py --list
 """
 
+import argparse
 import re
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -32,77 +24,220 @@ from pathlib import Path
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 
-FACTORY_ROOT  = Path(__file__).parent.parent
-PROJECTS_DIR  = Path.home() / "projects"
-
+FACTORY_ROOT   = Path(__file__).parent.parent
+PROJECTS_DIR   = Path.home() / "projects"
+PRESETS_DIR    = FACTORY_ROOT / "presets"
 TEMPLATES_BASE = FACTORY_ROOT / "templates" / "base"
 TEMPLATES_DOCS = FACTORY_ROOT / "templates" / "docs"
+INIT_PROMPT    = FACTORY_ROOT / "prompts" / "init-project.md"
 
-# template source dir → destination path relative to project root
+# (source dir, destination subdir relative to project root)
 TEMPLATE_MAP = [
-    (TEMPLATES_BASE, ""),        # templates/base/*  → project root
-    (TEMPLATES_DOCS, "docs"),    # templates/docs/*  → docs/
+    (TEMPLATES_BASE, ""),       # templates/base/*  →  project root
+    (TEMPLATES_DOCS, "docs"),   # templates/docs/*  →  docs/
 ]
 
-# Extra empty dirs to create in the new project (beyond what templates produce)
+# Extra empty dirs to always create
 EXTRA_DIRS = [".tmp"]
 
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
+# ─── Preset loading ───────────────────────────────────────────────────────────
 
-def slug_to_title(slug: str) -> str:
+def list_presets():
+    """Return sorted list of available preset names (stems of .md files)."""
+    return sorted(p.stem for p in PRESETS_DIR.glob("*.md"))
+
+
+def load_preset(name):
+    """
+    Parse key=value frontmatter from a preset .md file.
+
+    Frontmatter format (at the very top of the file):
+
+        ---
+        # optional comment
+        KEY = value
+        KEY = value
+        ---
+
+    Returns a dict of {KEY: value} strings.
+    """
+    preset_file = PRESETS_DIR / f"{name}.md"
+    if not preset_file.exists():
+        available = ", ".join(list_presets()) or "none"
+        abort(f"Preset '{name}' not found.\nAvailable: {available}")
+
+    lines    = preset_file.read_text(encoding="utf-8").splitlines()
+    data     = {}
+    in_block = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        if stripped == "---":
+            if not in_block:
+                in_block = True
+                continue
+            else:
+                break   # end of frontmatter
+
+        if not in_block:
+            abort(
+                f"Preset '{name}' has no frontmatter.\n"
+                "Expected a --- ... --- block at the top with KEY = value pairs.\n"
+                "See presets/next-supabase.md for the correct format."
+            )
+
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            key, _, value = stripped.partition("=")
+            data[key.strip()] = value.strip()
+
+    if not data:
+        abort(f"Preset '{name}' frontmatter parsed but contained no key=value pairs.")
+
+    return data
+
+
+# ─── Replacements ─────────────────────────────────────────────────────────────
+
+def slug_to_title(slug):
     """my-new-startup  →  My New Startup"""
     return " ".join(word.capitalize() for word in slug.replace("_", "-").split("-"))
 
 
-def build_replacements(slug: str) -> dict:
+def build_replacements(slug, preset_data):
+    """
+    Merge base replacements with preset data.
+    Base identity values (APP_NAME, APP_SLUG, DATE, YEAR) always win.
+    """
     today = date.today()
     title = slug_to_title(slug)
-    return {
+
+    base = {
         "APP_SLUG":  slug,
         "APP_NAME":  title,
         "APP_TITLE": title,
-        "DATE":      today.isoformat(),   # 2026-04-02
-        "YEAR":      str(today.year),     # 2026
+        "DATE":      today.isoformat(),
+        "YEAR":      str(today.year),
     }
 
+    return {**preset_data, **base}
 
-def render(content: str, replacements: dict) -> str:
-    """Replace every {{KEY}} in content using the replacements dict."""
+
+# ─── Rendering ────────────────────────────────────────────────────────────────
+
+def render(content, replacements):
+    """Replace every {{KEY}} occurrence using the replacements dict."""
     for key, value in replacements.items():
         content = content.replace(f"{{{{{key}}}}}", value)
     return content
 
 
-def strip_tpl(name: str) -> str:
+def strip_tpl(name):
     """CLAUDE.md.tpl → CLAUDE.md  |  .gitignore.tpl → .gitignore"""
     return name[:-4] if name.endswith(".tpl") else name
 
 
-def find_unfilled(content: str) -> list:
-    """Return sorted unique list of {{PLACEHOLDER}} patterns still present."""
+def find_unfilled(content):
+    """Return sorted unique list of {{PLACEHOLDER}} patterns still in content."""
     return sorted(set(re.findall(r"\{\{[A-Z_0-9]+\}\}", content)))
+
+
+def placeholders_to_hints(text):
+    """
+    Convert remaining {{PLACEHOLDER}} patterns to <placeholder> for display.
+    Makes rendered prompts easier to read when pasting into Claude Code.
+    """
+    return re.sub(r"\{\{([A-Z_0-9]+)\}\}", r"<\1>", text)
+
+
+# ─── Init prompt ──────────────────────────────────────────────────────────────
+
+def render_init_prompt(replacements):
+    """
+    Read prompts/init-project.md, render known placeholders, and return the
+    prompt body (the section after the first --- separator).
+
+    The file structure is:
+        [factory header / instructions]
+        ---
+        [the actual prompt to paste into Claude Code]
+
+    Only the part after --- is returned.
+    """
+    if not INIT_PROMPT.exists():
+        return None
+
+    raw = INIT_PROMPT.read_text(encoding="utf-8")
+
+    # Split on the first --- separator — take everything after it
+    parts = raw.split("---", maxsplit=1)
+    if len(parts) < 2:
+        return None   # no separator found, skip
+
+    prompt_body = parts[1].strip()
+
+    # Render known placeholders
+    rendered = render(prompt_body, replacements)
+
+    # Convert any remaining {{PLACEHOLDERS}} to <hints> for readability
+    return placeholders_to_hints(rendered)
+
+
+# ─── Git ──────────────────────────────────────────────────────────────────────
+
+def run_git(project_dir):
+    """Run git init, add, and initial commit inside project_dir."""
+    steps = [
+        ["git", "init"],
+        ["git", "add", "."],
+        ["git", "commit", "-m", "Initial scaffold"],
+    ]
+    for cmd in steps:
+        result = subprocess.run(cmd, cwd=project_dir, capture_output=True, text=True)
+        if result.returncode != 0:
+            abort(
+                f"Git command failed: {' '.join(cmd)}\n"
+                + result.stderr.strip()
+            )
+
+
+def open_in_vscode(project_dir):
+    """
+    Open project_dir in VS Code. Non-fatal — warns if 'code' is not in PATH
+    but does not abort since the project was already created successfully.
+    """
+    result = subprocess.run(
+        ["code", str(project_dir)],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(f"\n  Warning: could not open VS Code.")
+        print(f"  Make sure 'code' is in your PATH (VS Code: Cmd+Shift+P → 'Install code command').")
+        print(f"  Run manually: code {project_dir}")
+        return False
+    return True
 
 
 # ─── Validation ───────────────────────────────────────────────────────────────
 
-def validate_slug(slug: str) -> None:
-    pattern = r"^[a-z][a-z0-9\-]*$"
-    if not re.match(pattern, slug):
+def validate_slug(slug):
+    if not re.match(r"^[a-z][a-z0-9\-]*$", slug):
         abort(
             f"Invalid slug: '{slug}'\n"
-            "Slugs must be lowercase, start with a letter, and contain only letters, numbers, or hyphens.\n"
+            "Must be lowercase, start with a letter, hyphens allowed.\n"
             "Example: my-new-startup"
         )
 
 
-def validate_templates() -> None:
+def validate_templates():
     for src, _ in TEMPLATE_MAP:
         if not src.is_dir():
-            abort(f"Templates directory not found: {src}\nRun this script from the app-factory repo.")
+            abort(f"Templates directory not found: {src}")
 
 
-def validate_target(project_dir: Path) -> None:
+def validate_target(project_dir):
     if project_dir.exists():
         abort(
             f"Directory already exists: {project_dir}\n"
@@ -110,27 +245,33 @@ def validate_target(project_dir: Path) -> None:
         )
 
 
-def abort(message: str) -> None:
+def abort(message):
     print(f"\nError: {message}\n", file=sys.stderr)
     sys.exit(1)
 
 
 # ─── Generator ────────────────────────────────────────────────────────────────
 
-def generate(slug: str) -> None:
-    project_dir  = PROJECTS_DIR / slug
-    replacements = build_replacements(slug)
-
+def generate(slug, preset_name, use_git, use_open):
     validate_slug(slug)
     validate_templates()
+
+    project_dir  = PROJECTS_DIR / slug
     validate_target(project_dir)
 
-    print(f"\nGenerating project '{slug}'")
-    print(f"Location: {project_dir}\n")
+    preset_data  = load_preset(preset_name) if preset_name else {}
+    replacements = build_replacements(slug, preset_data)
 
-    unfilled = {}   # relative file path → list of remaining placeholders
+    print()
+    print(f"  slug    {slug}")
+    print(f"  preset  {preset_name or '(none)'}")
+    print(f"  git     {'yes' if use_git else 'no'}")
+    print(f"  open    {'yes' if use_open else 'no'}")
+    print(f"  output  {project_dir}")
+    print()
 
-    # Render and write template files
+    unfilled = {}
+
     for src_dir, dst_subdir in TEMPLATE_MAP:
         dst_dir = project_dir / dst_subdir if dst_subdir else project_dir
         dst_dir.mkdir(parents=True, exist_ok=True)
@@ -146,54 +287,151 @@ def generate(slug: str) -> None:
 
             out_path.write_text(rendered, encoding="utf-8")
 
-            rel = out_path.relative_to(project_dir)
-            print(f"  created  {rel}")
-
+            rel       = out_path.relative_to(project_dir)
             remaining = find_unfilled(rendered)
-            if remaining:
-                unfilled[str(rel)] = remaining
 
-    # Create extra dirs
+            status = f"  created  {rel}"
+            if remaining:
+                status += f"  ({len(remaining)} placeholders)"
+                unfilled[str(rel)] = remaining
+            print(status)
+
     for d in EXTRA_DIRS:
         (project_dir / d).mkdir(exist_ok=True)
 
-    print_summary(project_dir, unfilled)
+    # Git — must succeed before we open VS Code
+    git_ok = False
+    if use_git:
+        print("\n  Running git init...")
+        run_git(project_dir)
+        git_ok = True
+        print("  git init + initial commit done")
+
+    # Open VS Code — non-fatal, runs after everything else
+    if use_open:
+        print("\n  Opening VS Code...")
+        open_in_vscode(project_dir)
+
+    # Render the init prompt now so it's ready for print_summary
+    init_prompt = render_init_prompt(replacements)
+
+    print_summary(project_dir, preset_name, git_ok, unfilled, init_prompt)
 
 
-# ─── Output ───────────────────────────────────────────────────────────────────
+# ─── Summary ──────────────────────────────────────────────────────────────────
 
-def print_summary(project_dir: Path, unfilled: dict) -> None:
-    width = 60
+def print_summary(project_dir, preset_name, git_ok, unfilled, init_prompt):
+    w = 62
 
-    print(f"\n{'─' * width}")
-    print(f"  Project created at {project_dir}")
-    print(f"{'─' * width}")
+    # ── Status block ──
+    print()
+    print("─" * w)
+    print(f"  Project  {project_dir}")
+    if preset_name:
+        print(f"  Preset   {preset_name}")
+    print(f"  Git      {'initialized' if git_ok else 'skipped  (--git to enable)'}")
+    print("─" * w)
 
+    # ── Unfilled placeholders ──
     if unfilled:
-        print("\n  Placeholders to fill in manually:\n")
+        total = sum(len(v) for v in unfilled.values())
+        print(f"\n  {total} placeholder(s) still need manual values:\n")
         for filepath, placeholders in unfilled.items():
             print(f"  {filepath}")
             for p in placeholders:
                 print(f"    {p}")
+    else:
+        print("\n  All placeholders resolved.")
 
-    print(f"\n  Next steps:")
-    print(f"    1. cd {project_dir}")
-    print( "    2. Fill in the placeholders listed above")
-    print( "    3. Pick a stack preset:  cat app-factory/presets/next-supabase.md")
-    print( "    4. Open in VS Code:      code .")
-    print( "    5. Paste init prompt:    app-factory/prompts/init-project.md")
-    print(f"\n{'─' * width}\n")
+    # ── Next steps ──
+    step = 1
+    print("\n  Next steps:")
+    print(f"    {step}.  cd {project_dir}") ; step += 1
+    if unfilled:
+        print(f"    {step}.  Fill in the placeholders above") ; step += 1
+    if not git_ok:
+        print(f"    {step}.  git init && git add . && git commit -m 'Initial scaffold'") ; step += 1
+    print(f"    {step}.  Open VS Code: code .") ; step += 1
+    print(f"    {step}.  Paste the init prompt below into Claude Code") ; step += 1
+
+    # ── Init prompt ──
+    if init_prompt:
+        print()
+        print("═" * w)
+        print("  INIT PROMPT — copy everything below into Claude Code")
+        print("═" * w)
+        print()
+        print(init_prompt)
+        print()
+        print("═" * w)
+    print()
 
 
-# ─── Entry point ──────────────────────────────────────────────────────────────
+# ─── CLI ──────────────────────────────────────────────────────────────────────
 
-def main() -> None:
-    if len(sys.argv) < 2:
+def parse_args():
+    parser = argparse.ArgumentParser(
+        prog="create_project.py",
+        description="App Factory — bootstrap a new app project from templates",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "examples:\n"
+            "  python scripts/create_project.py my-startup\n"
+            "  python scripts/create_project.py my-startup --preset next-supabase\n"
+            "  python scripts/create_project.py my-startup --preset next-supabase --git\n"
+            "  python scripts/create_project.py my-startup --preset next-supabase --git --open\n"
+            "  python scripts/create_project.py --list"
+        ),
+    )
+    parser.add_argument(
+        "slug",
+        nargs="?",
+        help="project slug, e.g. my-new-startup",
+    )
+    parser.add_argument(
+        "--preset",
+        metavar="NAME",
+        help="stack preset to apply (use --list to see options)",
+    )
+    parser.add_argument(
+        "--git",
+        action="store_true",
+        help="run git init and create an initial commit after generation",
+    )
+    parser.add_argument(
+        "--open",
+        action="store_true",
+        help="open the generated project in VS Code after generation",
+    )
+    parser.add_argument(
+        "--list",
+        action="store_true",
+        help="list available presets and exit",
+    )
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    if args.list:
+        presets = list_presets()
+        print("\nAvailable presets:\n")
+        for p in presets:
+            print(f"  {p}")
+        print()
+        sys.exit(0)
+
+    if not args.slug:
         print(__doc__)
         sys.exit(1)
 
-    slug = sys.argv[1].strip().lower()
-    generate(slug)
+    generate(
+        slug=args.slug.strip().lower(),
+        preset_name=args.preset,
+        use_git=args.git,
+        use_open=args.open,
+    )
 
 
 if __name__ == "__main__":

@@ -4,45 +4,48 @@ Follow this checklist every time you create a new app from the factory.
 
 ---
 
-## 1. Define the app
+## 1. Generate the project
 
-- [ ] Write one sentence: what does this app do and who is it for?
-- [ ] Name the app (used for repo name, folder name, and branding)
-- [ ] Choose a stack preset from `presets/` — commit to it before you start
+```bash
+new-app <slug> --preset <preset> --git --open
+```
 
-## 2. Create the repo
+- [ ] Choose a slug: lowercase, hyphens only (e.g. `invoice-tracker`)
+- [ ] Pick a preset — run `new-app --list` to see options
+- [ ] Confirm the project was created at `~/projects/<slug>/`
 
-- [ ] Create a new folder or GitHub repo named after the app
-- [ ] Run `git init` (or create via GitHub UI)
-- [ ] Copy `templates/base/.gitignore.tpl` → `.gitignore`
+## 2. Fill the intake
 
-## 3. Set up root files
+- [ ] Open `docs/app-intake.md` in the new project
+- [ ] Fill in all sections — aim for 10–15 minutes
+- [ ] Be specific: "freelancers chasing payments" beats "small business owners"
+- [ ] The core workflow section (Section 3) is the most important — spend time here
+- [ ] Leave a field blank rather than writing vague filler
 
-- [ ] Copy `templates/base/CLAUDE.md.tpl` → `CLAUDE.md`, fill in placeholders
-- [ ] Copy `templates/base/README.md.tpl` → `README.md`, fill in placeholders
-- [ ] Copy `templates/base/.env.example.tpl` → `.env.example`, add app-specific vars
+## 3. Fill the docs from intake
 
-## 4. Create the docs folder
+- [ ] Open Claude Code inside the new project (`code ~/projects/<slug>`)
+- [ ] Paste the prompt from `app-factory/prompts/fill-docs-from-intake.md`
+- [ ] Review what Claude produced — look for `<!-- needs input -->` markers
+- [ ] Cut any scope that crept in beyond the intake
+- [ ] Commit: `git add docs/ README.md CLAUDE.md && git commit -m "Fill docs from intake"`
 
-- [ ] Copy `templates/docs/product-brief.md.tpl` → `docs/product-brief.md`, fill in
-- [ ] Copy `templates/docs/mvp-scope.md.tpl` → `docs/mvp-scope.md`, fill in
-- [ ] Copy `templates/docs/architecture.md.tpl` → `docs/architecture.md`, fill in
-- [ ] Copy `templates/docs/roadmap.md.tpl` → `docs/roadmap.md`, fill in
+See `workflows/fill-docs-from-intake.md` for the full detail on this step.
 
-## 5. Bootstrap with Claude Code
+## 4. Bootstrap the project (first build session)
 
-- [ ] Open Claude Code in the new repo
-- [ ] Paste the `prompts/init-project.md` prompt (fill in app name + stack)
-- [ ] Let Claude generate the initial folder structure and config files
+- [ ] Paste the init prompt (printed at end of `new-app` output) into Claude Code
+- [ ] Fill in `<ONE_LINE_DESCRIPTION>` in the prompt before pasting
+- [ ] Let Claude scaffold the project and get to "hello world"
 - [ ] Review and commit the scaffold
 
-## 6. First build session
+## 5. First build session
 
 - [ ] Follow `workflows/first-build.md`
 - [ ] Commit working state at the end of every session
 
-## 7. After first use — update the factory
+## 6. After first use — update the factory
 
-- [ ] Note anything missing, unclear, or improvised during setup
-- [ ] Update the relevant template, doc, or workflow in this repo
-- [ ] Commit the update: `git commit -m "improve factory after {app-name} setup"`
+- [ ] Note anything missing, unclear, or that had to be improvised
+- [ ] Update the relevant template, prompt, or workflow in this repo
+- [ ] Commit: `git commit -m "improve factory after <slug> setup"`

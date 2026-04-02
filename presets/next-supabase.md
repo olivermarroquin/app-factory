@@ -1,3 +1,27 @@
+---
+# Stack replacements — these fill {{PLACEHOLDERS}} in generated templates
+STACK_SUMMARY       = Next.js (App Router) + Supabase + Vercel
+FRONTEND            = Next.js (App Router)
+BACKEND             = Next.js Server Actions
+DATABASE            = Supabase (Postgres)
+AUTH                = Supabase Auth
+EMAIL_SERVICE       = Resend
+HOSTING             = Vercel
+CICD_NOTES          = Vercel auto-deploys on push to main; preview deploys per PR
+DB_CLIENT           = supabase
+AUTH_PROVIDER       = Supabase Auth
+SESSION_MODEL       = Supabase session in HTTP-only cookie via @supabase/ssr
+PROTECTED_ROUTE_PATTERN = app/(app)/
+REDIRECT_TARGET     = /login
+NODE_VERSION        = 18
+INSTALL_CMD         = npm install
+DEV_CMD             = npm run dev
+BUILD_CMD           = npm run build
+TEST_CMD            = npm test
+OTHER_PREREQS       = Supabase account (free tier works)
+APP_DOMAIN          = yourdomain.com
+---
+
 # Stack Preset: Next.js + Supabase
 
 ## Summary
