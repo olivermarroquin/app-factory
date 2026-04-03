@@ -1,90 +1,104 @@
 #!/usr/bin/env bash
-# install.sh — Add the `new-app` command to ~/.zshrc
+# install.sh — Add app-factory shell commands to ~/.zshrc
+#
+# Installs:
+#   new-app    — scaffold a new app project
+#   fill-docs  — generate a ready-to-paste doc-fill prompt from a filled intake
 #
 # Usage:
 #   bash scripts/install.sh
 #
-# What it does:
-#   - Detects the absolute path of this app-factory repo
-#   - Appends a new-app() zsh function to ~/.zshrc (once — safe to re-run)
-#   - Prints instructions for activating and testing the command
+# Safe to re-run — each function is installed at most once.
 #
 # To undo:
-#   Open ~/.zshrc and remove the block between the two marker lines:
-#     # >>> app-factory <<<
-#     ...
-#     # <<< app-factory <<<
+#   Remove the blocks between their marker lines in ~/.zshrc:
+#     # >>> app-factory <<<  ...  # <<< app-factory <<<
+#     # >>> app-factory fill-docs <<<  ...  # <<< app-factory fill-docs <<<
 
 set -euo pipefail
 
-# ─── Config ──────────────────────────────────────────────────────────────────
+# ─── Config ───────────────────────────────────────────────────────────────────
 
-MARKER="# >>> app-factory <<<"
 ZSHRC="$HOME/.zshrc"
 
-# Resolve factory root from the location of this script
+NEW_APP_MARKER="# >>> app-factory <<<"
+FILL_DOCS_MARKER="# >>> app-factory fill-docs <<<"
+
+# Resolve factory root from location of this script
 FACTORY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SCRIPT_PATH="$FACTORY_DIR/scripts/create_project.py"
+NEW_APP_SCRIPT="$FACTORY_DIR/scripts/create_project.py"
+FILL_DOCS_SCRIPT="$FACTORY_DIR/scripts/render_fill_docs_prompt.py"
 
-# ─── Checks ──────────────────────────────────────────────────────────────────
+# ─── Checks ───────────────────────────────────────────────────────────────────
 
-# Verify the generator script exists at the expected path
-if [[ ! -f "$SCRIPT_PATH" ]]; then
+if [[ ! -f "$NEW_APP_SCRIPT" ]]; then
     echo ""
-    echo "Error: generator script not found at:"
-    echo "  $SCRIPT_PATH"
-    echo ""
-    echo "Run this script from inside the app-factory repo:"
-    echo "  bash scripts/install.sh"
+    echo "Error: script not found: $NEW_APP_SCRIPT"
+    echo "Run this from inside the app-factory repo: bash scripts/install.sh"
     exit 1
 fi
 
-# Create ~/.zshrc if it doesn't exist
+if [[ ! -f "$FILL_DOCS_SCRIPT" ]]; then
+    echo ""
+    echo "Error: script not found: $FILL_DOCS_SCRIPT"
+    echo "Run this from inside the app-factory repo: bash scripts/install.sh"
+    exit 1
+fi
+
 if [[ ! -f "$ZSHRC" ]]; then
     echo ""
     echo "Creating $ZSHRC (it did not exist)..."
     touch "$ZSHRC"
 fi
 
-# ─── Deduplication check ─────────────────────────────────────────────────────
+# ─── Install new-app ──────────────────────────────────────────────────────────
 
-if grep -qF "$MARKER" "$ZSHRC"; then
+if grep -qF "$NEW_APP_MARKER" "$ZSHRC"; then
     echo ""
-    echo "  new-app is already installed in $ZSHRC"
-    echo ""
-    echo "  To update the factory path (if you moved the repo), remove the"
-    echo "  block between the marker lines and re-run this script:"
-    echo ""
-    echo "    $MARKER"
-    echo "    ..."
-    echo "    # <<< app-factory <<<"
-    echo ""
-    exit 0
-fi
+    echo "  new-app   already in $ZSHRC"
+else
+    cat >> "$ZSHRC" << EOF
 
-# ─── Append the function block ────────────────────────────────────────────────
-
-cat >> "$ZSHRC" << EOF
-
-$MARKER
+$NEW_APP_MARKER
 # App Factory — project generator
 # Source: $FACTORY_DIR
 # To remove: delete this block from ~/.zshrc
 new-app() {
-    python3 "$SCRIPT_PATH" "\$@"
+    python3 "$NEW_APP_SCRIPT" "\$@"
 }
 # <<< app-factory <<<
 EOF
+    echo ""
+    echo "  new-app   installed → $NEW_APP_SCRIPT"
+fi
 
-# ─── Done ────────────────────────────────────────────────────────────────────
+# ─── Install fill-docs ────────────────────────────────────────────────────────
+
+if grep -qF "$FILL_DOCS_MARKER" "$ZSHRC"; then
+    echo "  fill-docs already in $ZSHRC"
+else
+    cat >> "$ZSHRC" << EOF
+
+$FILL_DOCS_MARKER
+# App Factory — doc-fill prompt generator
+# Source: $FACTORY_DIR
+# To remove: delete this block from ~/.zshrc
+fill-docs() {
+    python3 "$FILL_DOCS_SCRIPT" "\${1:-.}"
+}
+# <<< app-factory fill-docs <<<
+EOF
+    echo "  fill-docs installed → $FILL_DOCS_SCRIPT"
+fi
+
+# ─── Done ─────────────────────────────────────────────────────────────────────
 
 echo ""
-echo "  Installed new-app → $SCRIPT_PATH"
-echo ""
-echo "  Activate it now:"
+echo "  Activate:"
 echo "    source ~/.zshrc"
 echo ""
-echo "  Then test it:"
-echo "    new-app --list"
+echo "  Usage:"
 echo "    new-app my-startup --preset next-supabase --git --open"
+echo "    fill-docs                  # from inside the project"
+echo "    fill-docs ~/projects/my-startup  # from anywhere"
 echo ""

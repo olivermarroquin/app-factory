@@ -44,8 +44,9 @@ See `workflows/fill-docs-from-intake.md` for the full detail on this step.
 - [ ] Follow `workflows/first-build.md`
 - [ ] Commit working state at the end of every session
 
-## 6. After first use — update the factory
+## 6. Factory retro
 
-- [ ] Note anything missing, unclear, or that had to be improvised
-- [ ] Update the relevant template, prompt, or workflow in this repo
-- [ ] Commit: `git commit -m "improve factory after <slug> setup"`
+- [ ] Open `app-factory/workflows/factory-retro.md`
+- [ ] Log friction points while they're fresh (5 min)
+- [ ] Triage and fix — update the relevant template, prompt, workflow, or preset
+- [ ] Commit from `app-factory`: `git commit -m "factory: improve after <slug> retro"`
