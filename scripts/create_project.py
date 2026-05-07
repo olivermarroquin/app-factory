@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 """
-create_project.py — App Factory project generator (v4)
+create_project.py — App Factory project generator (v5)
 
 Usage:
-    python scripts/create_project.py <slug> [--preset <name>] [--describe "..."] [--git] [--open]
+    python scripts/create_project.py <slug> [--preset <name>] [--describe "..."] [--area <a>] [--fork-from <name>] [--git] [--open]
     python scripts/create_project.py --list
+
+Generates a new app project at ~/workspace/repos/<slug>/ and wires it into
+the Knowledge OS vault by invoking init-project-vault.sh (creates .kos/
+and symlinks into second-brain/04_projects/<area>/<slug>/).
 
 Examples:
     python scripts/create_project.py my-startup
     python scripts/create_project.py my-startup --preset next-supabase
     python scripts/create_project.py my-startup --preset next-supabase --git --open
-    python scripts/create_project.py my-startup --preset next-supabase --describe "A tool for recruiters to shortlist candidates without spreadsheets" --git --open
+    python scripts/create_project.py my-startup --preset next-supabase --area clients --git --open
+    python scripts/create_project.py my-startup --preset next-supabase --fork-from resume-saas --git
     python scripts/create_project.py --list
 """
 
@@ -25,11 +30,17 @@ from pathlib import Path
 # ─── Paths ────────────────────────────────────────────────────────────────────
 
 FACTORY_ROOT   = Path(__file__).parent.parent
-PROJECTS_DIR   = Path.home() / "projects"
+REPOS_DIR      = Path.home() / "workspace" / "repos"
 PRESETS_DIR    = FACTORY_ROOT / "presets"
 TEMPLATES_BASE = FACTORY_ROOT / "templates" / "base"
 TEMPLATES_DOCS = FACTORY_ROOT / "templates" / "docs"
 INIT_PROMPT    = FACTORY_ROOT / "prompts" / "init-project.md"
+
+# Knowledge OS integration paths
+# (workspace structure assumed: repos/ and second-brain/ as siblings under ~/workspace/)
+INIT_VAULT_SCRIPT = Path.home() / "workspace" / "skills" / "knowledge-os-setup" / "scripts" / "init-project-vault.sh"
+VAULT_ROOT        = Path.home() / "workspace" / "second-brain"
+VAULT_ASSETS      = Path.home() / "workspace" / "skills" / "knowledge-os-setup" / "assets"
 
 # (source dir, destination subdir relative to project root)
 TEMPLATE_MAP = [
@@ -105,11 +116,12 @@ def slug_to_title(slug):
     return " ".join(word.capitalize() for word in slug.replace("_", "-").split("-"))
 
 
-def build_replacements(slug, preset_data, description=None):
+def build_replacements(slug, preset_data, description=None, area="personal"):
     """
     Merge base replacements with preset data.
-    Base identity values (APP_NAME, APP_SLUG, DATE, YEAR) always win.
+    Base identity values (APP_NAME, APP_SLUG, DATE, YEAR, AREA) always win.
     Optional description fills ONE_LINE_DESCRIPTION if provided.
+    AREA is the translated vault subpath (see area_to_vault_path).
     """
     today = date.today()
     title = slug_to_title(slug)
@@ -121,6 +133,7 @@ def build_replacements(slug, preset_data, description=None):
         "DATE":          today.isoformat(),
         "YEAR":          str(today.year),
         "CURRENT_STAGE": "MVP build",
+        "AREA":          area_to_vault_path(area),
     }
 
     if description:
@@ -225,6 +238,65 @@ def open_in_vscode(project_dir):
     return True
 
 
+# ─── Knowledge OS integration ─────────────────────────────────────────────────
+
+def area_to_vault_path(area):
+    """
+    Translate --area flag value to the vault subfolder it maps to.
+
+        --area value        Vault subfolder under 04_projects/
+        ───────────────     ─────────────────────────────────
+        personal            personal
+        clients             clients/_active
+        clients-private     clients/_private
+
+    Used when populating {{AREA}} in templates so rendered CLAUDE.md /
+    README.md show the actual vault path. NOT used when calling
+    init_project_vault.sh — that script does its own translation internally.
+    """
+    return {
+        "personal":         "personal",
+        "clients":          "clients/_active",
+        "clients-private":  "clients/_private",
+    }[area]
+
+
+def init_project_vault(project_dir, area, fork_from=None):
+    """
+    Run init-project-vault.sh to create .kos/ in the new repo and symlink it
+    into second-brain/04_projects/<area>/<name>/.
+
+    Inherits parent stdin/stdout/stderr — the bash script's interactive
+    fork-from prompt fires when fork_from is None and stdin is a TTY.
+    Non-fatal: if the script is missing or exits non-zero, a warning prints
+    and project scaffolding completes without .kos/.
+    """
+    if not INIT_VAULT_SCRIPT.exists():
+        print(f"\n  Warning: init-project-vault.sh not found at {INIT_VAULT_SCRIPT}")
+        print( "  .kos/ will NOT be created. Run the script manually after install.")
+        return False
+
+    cmd = [
+        "bash",
+        str(INIT_VAULT_SCRIPT),
+        str(project_dir),
+        area,
+        str(VAULT_ROOT),
+        str(VAULT_ASSETS),
+    ]
+    if fork_from:
+        cmd.append(fork_from)
+
+    # No capture_output: stdout/stderr go to terminal, stdin remains TTY-connected
+    # so the script's interactive fork-from prompt works when fork_from is None.
+    result = subprocess.run(cmd, check=False)
+    if result.returncode != 0:
+        print(f"\n  Warning: init-project-vault.sh exited with code {result.returncode}")
+        print( "  Project files created but .kos/ may be incomplete. Inspect on host.")
+        return False
+    return True
+
+
 # ─── Validation ───────────────────────────────────────────────────────────────
 
 def validate_slug(slug):
@@ -257,24 +329,27 @@ def abort(message):
 
 # ─── Generator ────────────────────────────────────────────────────────────────
 
-def generate(slug, preset_name, use_git, use_open, description=None):
+def generate(slug, preset_name, use_git, use_open, description=None, area="personal", fork_from=None):
     validate_slug(slug)
     validate_templates()
 
-    project_dir  = PROJECTS_DIR / slug
+    project_dir  = REPOS_DIR / slug
     validate_target(project_dir)
 
     preset_data  = load_preset(preset_name) if preset_name else {}
-    replacements = build_replacements(slug, preset_data, description)
+    replacements = build_replacements(slug, preset_data, description, area)
 
     print()
-    print(f"  slug    {slug}")
-    print(f"  preset  {preset_name or '(none)'}")
+    print(f"  slug       {slug}")
+    print(f"  preset     {preset_name or '(none)'}")
     if description:
-        print(f"  desc    {description}")
-    print(f"  git     {'yes' if use_git else 'no'}")
-    print(f"  open    {'yes' if use_open else 'no'}")
-    print(f"  output  {project_dir}")
+        print(f"  desc       {description}")
+    print(f"  area       {area}")
+    if fork_from:
+        print(f"  fork-from  {fork_from}")
+    print(f"  git        {'yes' if use_git else 'no'}")
+    print(f"  open       {'yes' if use_open else 'no'}")
+    print(f"  output     {project_dir}")
     print()
 
     unfilled = {}
@@ -306,7 +381,11 @@ def generate(slug, preset_name, use_git, use_open, description=None):
     for d in EXTRA_DIRS:
         (project_dir / d).mkdir(exist_ok=True)
 
-    # Git — must succeed before we open VS Code
+    # Knowledge OS integration: create .kos/ and symlink into second-brain
+    print("\n  Initializing project vault (.kos/)...")
+    init_project_vault(project_dir, area, fork_from)
+
+    # Git — must succeed before we open VS Code; .kos/ is now part of the initial commit
     git_ok = False
     if use_git:
         print("\n  Running git init...")
@@ -386,7 +465,8 @@ def parse_args():
             "  python scripts/create_project.py my-startup\n"
             "  python scripts/create_project.py my-startup --preset next-supabase\n"
             "  python scripts/create_project.py my-startup --preset next-supabase --git --open\n"
-            '  python scripts/create_project.py my-startup --preset next-supabase --describe "A tool for X" --git --open\n'
+            "  python scripts/create_project.py my-startup --preset next-supabase --area clients --git --open\n"
+            "  python scripts/create_project.py my-startup --preset next-supabase --fork-from resume-saas --git\n"
             "  python scripts/create_project.py --list"
         ),
     )
@@ -414,6 +494,17 @@ def parse_args():
         "--describe",
         metavar="TEXT",
         help="one-line description of the app (fills ONE_LINE_DESCRIPTION in all templates)",
+    )
+    parser.add_argument(
+        "--area",
+        choices=["personal", "clients", "clients-private"],
+        default="personal",
+        help="vault area for the project's .kos/ symlink (default: personal)",
+    )
+    parser.add_argument(
+        "--fork-from",
+        metavar="NAME",
+        help="prior project to copy specs/ and lessons/ from (passed to init-project-vault.sh as 5th positional arg)",
     )
     parser.add_argument(
         "--list",
@@ -444,6 +535,8 @@ def main():
         use_git=args.git,
         use_open=args.open,
         description=args.describe,
+        area=args.area,
+        fork_from=args.fork_from,
     )
 
 

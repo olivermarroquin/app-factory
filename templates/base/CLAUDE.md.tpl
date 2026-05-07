@@ -21,11 +21,33 @@ Read these before making significant changes:
 ```
 {{APP_NAME}}/
 ├── docs/             # Product and technical context
+├── .kos/             # Operator-facing knowledge — symlinked into second-brain/04_projects/{{AREA}}/{{APP_SLUG}}/
+│   ├── README.md         #   project status, current phase, shared-intelligence links
+│   ├── .vault-config.md  #   agent-context boundary
+│   ├── specs/            #   spec-* notes
+│   ├── scopes/           #   scope-* notes
+│   ├── execution-logs/   #   per-session build logs
+│   └── lessons/          #   promotion candidates
 ├── {{FOLDER_1}}/     # {{PURPOSE_1}}
 ├── {{FOLDER_2}}/     # {{PURPOSE_2}}
 ├── {{FOLDER_3}}/     # {{PURPOSE_3}}
 └── ...
 ```
+
+## Knowledge artifacts
+
+Project knowledge lives in `<repo>/.kos/`, symlinked into `second-brain/04_projects/{{AREA}}/{{APP_SLUG}}/`. The vault and the repo see the same content; edit either side.
+
+- `.kos/README.md` — canonical project-status doc (purpose, current phase, links to shared-intelligence used, lessons promoted)
+- `.kos/.vault-config.md` — agent-context boundary defining scope for AI agents reading this vault
+- `.kos/specs/` — specifications (`spec-*.md`)
+- `.kos/scopes/` — implementation-scope notes (`scope-*.md`) for current work boundaries
+- `.kos/execution-logs/` — per-session build logs (`execution-log-YYYY-MM-DD-<topic>.md`)
+- `.kos/lessons/` — extracted learnings (`lesson-*.md`); promotion candidates for `second-brain/05_shared-intelligence/lessons/`
+
+The project's `.kos/README.md` includes a "Suggested by VIS extractions" Dataview block surfacing source notes flagged with `relevant-projects: [{{APP_SLUG}}]` in their frontmatter. Promotion of project lessons follows `second-brain/05_shared-intelligence/workflows/workflow-knowledge-promotion.md`.
+
+---
 
 ## Commands
 

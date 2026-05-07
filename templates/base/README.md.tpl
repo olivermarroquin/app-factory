@@ -42,3 +42,7 @@ cp .env.example .env
 - [MVP scope](docs/mvp-scope.md) — what's in and out of v1
 - [Architecture](docs/architecture.md) — stack, structure, key decisions
 - [Roadmap](docs/roadmap.md) — current phase and what's next
+
+## Knowledge integration
+
+This project's operator-facing knowledge lives in `.kos/`, symlinked into the workspace's second-brain vault at `04_projects/{{AREA}}/{{APP_SLUG}}/`. See `.kos/README.md` for project status, current phase, and links to shared-intelligence patterns and tools used. Build-log entries go to `.kos/execution-logs/`.

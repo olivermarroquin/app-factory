@@ -12,7 +12,7 @@ new-app <slug> --preset <preset> --git --open
 
 - [ ] Choose a slug: lowercase, hyphens only (e.g. `invoice-tracker`)
 - [ ] Pick a preset — run `new-app --list` to see options
-- [ ] Confirm the project was created at `~/projects/<slug>/`
+- [ ] Confirm the project was created at `~/workspace/repos/<slug>/`
 
 ## 2. Fill the intake
 
@@ -24,7 +24,7 @@ new-app <slug> --preset <preset> --git --open
 
 ## 3. Fill the docs from intake
 
-- [ ] Open Claude Code inside the new project (`code ~/projects/<slug>`)
+- [ ] Open Claude Code inside the new project (`code ~/workspace/repos/<slug>`)
 - [ ] Paste the prompt from `app-factory/prompts/fill-docs-from-intake.md`
 - [ ] Review what Claude produced — look for `<!-- needs input -->` markers
 - [ ] Cut any scope that crept in beyond the intake
