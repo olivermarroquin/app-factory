@@ -49,7 +49,7 @@ new-app my-startup --preset next-supabase
 new-app my-startup --preset next-supabase --git --open
 ```
 
-The generator creates `~/projects/<slug>/` with:
+The generator creates `~/workspace/repos/<slug>/` with:
 
 ```
 my-startup/

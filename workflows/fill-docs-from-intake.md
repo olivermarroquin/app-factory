@@ -30,7 +30,7 @@ Open `docs/app-intake.md` in your new project and fill it out.
 ### 2. Open Claude Code in the new project
 
 ```bash
-code ~/projects/<your-slug>
+code ~/workspace/repos/<your-slug>
 ```
 
 Then open Claude Code inside VS Code (`Ctrl+Shift+P` → Claude Code, or use the sidebar).
