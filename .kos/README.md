@@ -1,6 +1,6 @@
 ---
 type: project-readme
-project-name: ""
+project-name: app-factory
 status: active
 created: 2026-05-06
 client: false
@@ -8,7 +8,7 @@ sensitivity: standard
 tags: [project, vault-root]
 ---
 
-# Project: hire-relay
+# Project: app-factory
 
 ## Purpose
 What this project produces and for whom.
