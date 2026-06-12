@@ -385,6 +385,20 @@ def generate(slug, preset_name, use_git, use_open, description=None, area="perso
     print("\n  Initializing project vault (.kos/)...")
     init_project_vault(project_dir, area, fork_from)
 
+    # Review-gate hooks: install PostToolUse tracking into the new repo
+    deploy_hooks = Path.home() / "workspace" / "repos" / "ai-agency-core" / "scripts" / "mandatory-review-gate" / "deploy-hooks.sh"
+    if deploy_hooks.exists():
+        print("\n  Installing review-gate hooks (PostToolUse only)...")
+        result = subprocess.run([str(deploy_hooks), str(project_dir)],
+                                capture_output=True, text=True)
+        if result.returncode == 0:
+            print(f"  {result.stdout.strip()}")
+        else:
+            print(f"  Warning: deploy-hooks.sh failed: {result.stderr.strip()}")
+    else:
+        print(f"\n  Warning: deploy-hooks.sh not found at {deploy_hooks}")
+        print("  Review-gate hooks will NOT be installed. Run deploy-hooks.sh manually.")
+
     # Git — must succeed before we open VS Code; .kos/ is now part of the initial commit
     git_ok = False
     if use_git:
